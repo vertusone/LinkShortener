@@ -1,0 +1,315 @@
+@page
+@model Links.Pages.IndexModel
+
+@{
+    ViewData["Title"] = "Список ссылок";
+}
+
+<p>
+    <button type="button" class="btn btn-success" onclick="showCreateLinkDialog(0)">Добавить ссылку</button>
+</p>
+<div id="links-list-error" class="row">
+    <div v-if="showErrorMessage" class="col-md-12">
+        <div class="alert alert-danger" role="alert">{{errorMessage}}</div>
+    </div>
+</div>
+<table id="links-table" class="table">
+    <thead>
+        <tr>
+            <th>Длинный Url</th>
+            <th>Короткий Url</th>
+            <th>Дата создания</th>
+            <th>Количество переходов</th>
+            <th>Действие</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr v-for="link in links">
+            <td><a v-bind:href="link.longUrl" target="_blank">{{link.longUrl}}</a></td>
+            <td><a v-bind:href="link.shortUrl" target="_blank">{{link.shortUrl}}</a></td>
+            <td>{{moment(link.insertionDate).format("L LT")}}</td>
+            <td>{{link.redirectsCount}}</td>
+            <td>
+                <button type="button" class="btn btn-link" v-on:click="fillEditingData(link.id)">Изменить</button>
+                <br/>
+                <button type="button" class="btn btn-link" v-on:click="fillDeletingWindow(link.id)">Удалить</button>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<div id="create-link" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{text}} ссылку</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-12" v-if="showErrorMessage">
+                        <div class="alert alert-danger" role="alert">{{errorMessage}}</div>
+                    </div>
+                    <div class="col-md-12">
+                        <form method="post">
+                            <div class="form-group">
+                                <label class="control-label">Адрес ссылки</label>
+                                <input class="form-control" v-model="longUrl" />
+                                <span class="text-danger"></span>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-success" v-on:click="saveOrUpdateLink()">{{text}}</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="delete-link" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Вы уверены, что хотите удалить ссылку?</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="col-md-12" v-if="showErrorMessage">
+                    <div class="alert alert-danger" role="alert">{{errorMessage}}</div>
+                </div>
+                <dl class="row">
+                    <dt class="col-sm-3">
+                        Ссылка
+                    </dt>
+                    <dd class="col-sm-9">
+                        {{longUrl}}
+                    </dd>
+                    <dt class="col-sm-3">
+                        Короткая ссылка
+                    </dt>
+                    <dd class="col-sm-9">
+                        {{shortUrl}}
+                    </dd>
+                    <dt class="col-sm-3">
+                        Дата добавления
+                    </dt>
+                    <dd class="col-sm-9">
+                        {{moment(insertionDate).format("L LT")}}
+                    </dd>
+                    <dt class="col-sm-3">
+                        Количество переходов
+                    </dt>
+                    <dd class="col-sm-9">
+                        {{redirectsCount}}
+                    </dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" v-on:click="deleteLink()">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    let linksListError = new Vue({
+        el: "#links-list-error",
+        data: {
+            errorMessage: "",
+            showErrorMessage: false
+        }
+    });
+
+    let listModel = new Vue({
+        el: "#links-table",
+        data: { links: [] },
+        methods: {
+            fillEditingData: function (linkId) { }
+        }
+    });
+
+    let createLinkModel = new Vue({
+        el: "#create-link",
+        data: {
+            text: "",
+            linkId: 0,
+            longUrl: "",
+            urlKey: "",
+            insertionDate: null,
+            redirectsCount: 0,
+            errorMessage: "",
+            showErrorMessage: false
+        },
+        methods: {
+            saveOrUpdateLink: function () { }
+        }
+    });
+
+    let deleteLinkModel = new Vue({
+        el: "#delete-link",
+        data: {
+            text: "",
+            linkId: 0,
+            longUrl: "",
+            shortUrl: "",
+            insertionDate: null,
+            redirectsCount: 0,
+            errorMessage: "",
+            showErrorMessage: true
+        },
+        methods: {
+            deleteLink: function () { }
+        }
+    });
+
+    function showCreateLinkDialog(linkId) {
+        createLinkModel.showErrorMessage = false;
+        if (linkId && linkId > 0) {
+            createLinkModel.linkId = linkId;
+            createLinkModel.text = "Изменить";
+        } else {
+            createLinkModel.linkId = 0;
+            createLinkModel.text = "Добавить";
+            createLinkModel.longUrl = "";
+            createLinkModel.urlKey = "";
+            createLinkModel.insertionDate = new Date();
+            createLinkModel.redirectsCount = 0;
+        }
+        $("#create-link").modal("show");
+    }
+
+    function showCreateLinkError(text) {
+        createLinkModel.showErrorMessage = true;
+        createLinkModel.errorMessage = text;
+    }
+
+    function showDeleteLinkError(text) {
+        deleteLinkModel.showErrorMessage = true;
+        deleteLinkModel.errorMessage = text;
+    }
+
+    function fillEditingData(linkId) {
+        showCreateLinkDialog(linkId);
+        let links = listModel.links;
+        let link = links.find((e) => e.id === linkId);
+        try {
+            createLinkModel.longUrl = link.longUrl;
+            createLinkModel.urlKey = link.urlKey;
+            createLinkModel.insertionDate = link.insertionDate;
+            createLinkModel.redirectsCount = link.redirectsCount;
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
+    function fillDeletingWindow(linkId) {
+        deleteLinkModel.showErrorMessage = false;
+
+        $("#delete-link").modal("show");
+        let links = listModel.links;
+        let link = links.find((e) => e.id === linkId);
+
+        if (!link) {
+            console.error("Ссылка не найдена");
+        }
+
+        deleteLinkModel.linkId = link.id;
+        deleteLinkModel.longUrl = link.longUrl;
+        deleteLinkModel.shortUrl = link.shortUrl;
+        deleteLinkModel.insertionDate = link.insertionDate;
+        deleteLinkModel.redirectsCount = link.redirectsCount;
+    }
+
+    function saveOrUpdateLink() {
+        let linkId = createLinkModel.linkId;
+        let longUrl = createLinkModel.longUrl;
+        let urlKey = createLinkModel.urlKey;
+        let insertionDate = createLinkModel.insertionDate;
+        let redirectsCount = createLinkModel.redirectsCount;
+
+        if (longUrl.trim().length == 0) {
+            showCreateLinkError("Поле \"Адрес ссылки\" обязательно для заполнения");
+            return;
+        }
+        createLinkModel.showErrorMessage = false;
+
+        let data = {
+            Id: linkId,
+            LongUrl: longUrl,
+            UrlKey: urlKey,
+            InsertionDate: insertionDate,
+            RedirectsCount: redirectsCount
+        };
+
+        $.ajax({
+            method: linkId > 0 ? "PUT" : "POST",
+            url: "link",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: data => {
+                if (createLinkModel.linkId == data.id) {
+                    // update mode
+                    let element = listModel.links.find(e => e.id == data.id);
+                    element.shortUrl = data.shortUrl;
+                    element.longUrl = data.longUrl;
+                    element.redirectsCount = data.redirectsCount;
+                } else {
+                    // create mode
+                    listModel.links.push(data);
+                }
+                createLinkModel.showErrorMessage = false;
+                $("#create-link").modal("hide");
+            },
+            error: function (xhr, status, error) {
+                showCreateLinkError("Ошибка на сервере: " + xhr.responseJSON.title + ". " + error);
+            }
+        });
+    }
+
+    function deleteLink() {
+        let linkId = deleteLinkModel.linkId;
+        $.ajax({
+            url: "link/" + linkId,
+            method: "DELETE",
+            success: linkId => {
+                listModel.links = listModel.links.filter(element => element.id != linkId);
+                deleteLinkModel.showErrorMessage = false;
+                $("#delete-link").modal("hide");
+            },
+            error: function (xhr, status, error) {
+                showDeleteLinkError("Ошибка на сервере: " + xhr.responseJSON.title + ". " + error);
+            }
+        });
+    }
+
+    function fetchList() {
+        $.ajax({
+            url: "link/all",
+            method: "GET",
+            success: data => {
+                linksListError.showErrorMessage = false;
+                listModel.links = data;
+            },
+            error: function (xhr, status, error) {
+                linksListError.errorMessage = "Ошибка на сервере: " + xhr.responseJSON.title + " " + error;
+                linksListError.showErrorMessage = true;
+            }
+        });
+    }
+
+    $(function () {
+        moment.locale("ru");
+        $('[data-toggle="tooltip"]').tooltip();
+        fetchList();
+        listModel.fillEditingData = fillEditingData;
+        createLinkModel.saveOrUpdateLink = saveOrUpdateLink;
+        deleteLinkModel.deleteLink = deleteLink;
+    });
+</script>
